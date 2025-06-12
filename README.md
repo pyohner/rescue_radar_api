@@ -2,6 +2,7 @@
 
 This is the Flask API for the Rescue Radar project. It serves data from a locally maintained Petfinder SQLite database.
 
+Only collects data from the Orlando, FL, area.
 ## Endpoints
 
 - `/api/animals` – Get all animals  
