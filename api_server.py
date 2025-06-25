@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 import sqlite3
 from flask_cors import CORS
 
+
 app = Flask(__name__)
 CORS(app)
 DB_FILE = "C:/Users/yohnep25/PycharmProjects/databases/petfinder_data.db"
@@ -42,9 +43,6 @@ def get_breed_counts():
 def get_organizations():
     rows = query_db("SELECT * FROM organizations")
     return jsonify([dict(row) for row in rows])
-
-
-from flask import request
 
 
 @app.route("/api/animals/daily-counts")
