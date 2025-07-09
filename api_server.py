@@ -2,7 +2,6 @@ from flask import Flask, jsonify, request
 import sqlite3
 from flask_cors import CORS
 
-
 app = Flask(__name__)
 CORS(app)
 DB_FILE = "C:/Users/yohnep25/PycharmProjects/databases/petfinder_data.db"
@@ -20,9 +19,18 @@ def query_db(query, args=(), one=False):
 def get_animals():
     animal_type = request.args.get("type")
     if animal_type:
-        rows = query_db("SELECT * FROM animals WHERE type = ?", (animal_type,))
+        rows = query_db("""
+            SELECT a.*, o.name AS organization_name
+            FROM animals a
+            LEFT JOIN organizations o ON a.organization_id = o.id
+            WHERE a.type = ?
+        """, (animal_type,))
     else:
-        rows = query_db("SELECT * FROM animals")
+        rows = query_db("""
+            SELECT a.*, o.name AS organization_name
+            FROM animals a
+            LEFT JOIN organizations o ON a.organization_id = o.id
+        """)
     return jsonify([dict(row) for row in rows])
 
 
@@ -139,6 +147,69 @@ def org_animal_counts():
         ORDER BY count DESC
     """)
     return jsonify([dict(row) for row in rows])
+
+
+@app.route("/api/animals/todays-rescues")
+def todays_rescues():
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        # 1. Get the most recent published_at date (date-only)
+        cur.execute("SELECT MAX(substr(published_at, 1, 10)) FROM animals")
+        latest_date = cur.fetchone()[0]
+        if not latest_date:
+            return jsonify({"message": "No data available"}), 404
+
+        # 2. Get animals published on that date
+        cur.execute("""
+            SELECT a.*, o.name AS organization_name
+            FROM animals a
+            LEFT JOIN organizations o ON a.organization_id = o.id
+            WHERE substr(a.published_at, 1, 10) = ?
+        """, (latest_date,))
+        all_today = cur.fetchall()
+
+        if not all_today:
+            return jsonify({"message": "No animals found for latest date"}), 404
+
+        # 3. Animal type breakdown
+        type_counts = {}
+        org_counts = {}
+        org_type_counts = {}
+
+        for row in all_today:
+            animal_type = row["type"]
+            org_id = row["organization_id"]
+            org_name = row["organization_name"]
+
+            type_counts[animal_type] = type_counts.get(animal_type, 0) + 1
+
+            if org_id:
+                org_counts[org_id] = org_counts.get(org_id, {"name": org_name, "count": 0})
+                org_counts[org_id]["count"] += 1
+
+        # 4. Find top org
+        top_org_id = max(org_counts.items(), key=lambda x: x[1]["count"])[0]
+        top_org_name = org_counts[top_org_id]["name"]
+        top_org_total = org_counts[top_org_id]["count"]
+
+        # 5. Breakdown of types for top org
+        for row in all_today:
+            if row["organization_id"] == top_org_id:
+                org_type_counts[row["type"]] = org_type_counts.get(row["type"], 0) + 1
+
+        return jsonify({
+            "date": latest_date,
+            "total": len(all_today),
+            "typeBreakdown": type_counts,
+            "topOrganization": {
+                "id": top_org_id,
+                "name": top_org_name,
+                "total": top_org_total,
+                "typeBreakdown": org_type_counts
+            }
+        })
 
 
 if __name__ == "__main__":
