@@ -1,10 +1,13 @@
 from flask import Flask, jsonify, request
 import sqlite3
 from flask_cors import CORS
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
+DB_FILE = os.getenv("DATABASE_PATH")
 app = Flask(__name__)
 CORS(app)
-DB_FILE = "C:/Users/yohnep25/PycharmProjects/databases/petfinder_data.db"
 
 
 def query_db(query, args=(), one=False):
