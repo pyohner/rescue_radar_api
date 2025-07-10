@@ -41,7 +41,7 @@ Only collects data from the Orlando, FL, area.
 3. Create a `.env` file in the project root:
 
    ```env
-   DATABASE_PATH=C:/Users/yohnep25/PycharmProjects/databases/petfinder_data.db
+   DATABASE_PATH=C:/Your/Database/Path/petfinder_data.db
    ```
 
 4. Run the API server:
@@ -59,8 +59,8 @@ The server will start on `http://localhost:5000`.
 
 ## Related Repositories
 
-- [Rescue Radar App (Frontend)](https://github.com/pyohner/rescue-radar-app)
-- [Petfinder Data Collector](https://github.com/pyohner/petfinder_data_collector)
+- [Rescue Radar App (Frontend)](https://github.com/pyohner/rescue_radar_app)
+- [Petfinder Data Collector](https://github.com/pyohner/petfinder-data-collector)
 
 ## License
 
