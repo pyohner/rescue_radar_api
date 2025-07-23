@@ -3,6 +3,7 @@ import sqlite3
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
+import random
 
 load_dotenv()
 DB_FILE = os.getenv("DATABASE_PATH")
@@ -213,6 +214,36 @@ def todays_rescues():
                 "typeBreakdown": org_type_counts
             }
         })
+
+
+@app.route("/api/animals/todays-featured", methods=["GET"])
+def todays_featured_animal():
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        # Get the most recent date
+        cur.execute("SELECT MAX(substr(published_at, 1, 10)) FROM animals")
+        latest_date = cur.fetchone()[0]
+        if not latest_date:
+            return jsonify({"message": "No data available"}), 404
+
+        # Get all animals with photos from that date
+        cur.execute("""
+            SELECT a.name, a.type, a.primary_breed, a.age, a.primary_photo, a.url,
+                a.description, o.name AS organization_name
+            FROM animals a
+            LEFT JOIN organizations o ON a.organization_id = o.id
+            WHERE substr(a.published_at, 1, 10) = ?
+              AND a.primary_photo IS NOT NULL
+                """, (latest_date,))
+        rows = cur.fetchall()
+
+        if not rows:
+            return jsonify({"message": "No animals with photos for today"}), 404
+
+        featured = dict(random.choice(rows))
+        return jsonify(featured)
 
 
 if __name__ == "__main__":
